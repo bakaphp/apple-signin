@@ -1,17 +1,15 @@
 {
-    "name": "griffinledingham/php-apple-signin",
+    "name": "bakaphp/php-apple-signin",
     "type": "library",
     "description": "A simple library to decode and parse Apple Sign In client tokens.",
     "keywords": ["apple","sign","in","ios","php","jwt","jwk"],
     "license": "MIT",
     "authors": [
         {
-            "name": "Griffin Ledingham",
-            "email": "gcledingham@gmail.com",
-            "role": "Developer"
+            "name": "Mctekk"
         }
     ],
     "autoload": {
-        "psr-4": { "AppleSignIn\\": "" }
+        "psr-4": { "Baka\\": "src/" }
     }
 }
