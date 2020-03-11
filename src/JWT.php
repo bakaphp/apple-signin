@@ -1,6 +1,7 @@
 <?php
 
-namespace AppleSignIn\Vendor;
+namespace Baka;
+
 use \DomainException;
 use \InvalidArgumentException;
 use \UnexpectedValueException;
@@ -8,7 +9,7 @@ use \DateTime;
 
 /**
  * JSON Web Token implementation, based on this spec:
- * https://tools.ietf.org/html/rfc7519
+ * https://tools.ietf.org/html/rfc7519.
  *
  * PHP version 5
  *
@@ -21,7 +22,6 @@ use \DateTime;
  */
 class JWT
 {
-
     /**
      * The server leeway time in seconds, to aware the acceptable different time between clocks
      * of token issued server and relying parties.
@@ -38,14 +38,14 @@ class JWT
      */
     public static $timestamp = null;
 
-    public static $supported_algs = array(
-        'HS256' => array('hash_hmac', 'SHA256'),
-        'HS512' => array('hash_hmac', 'SHA512'),
-        'HS384' => array('hash_hmac', 'SHA384'),
-        'RS256' => array('openssl', 'SHA256'),
-        'RS384' => array('openssl', 'SHA384'),
-        'RS512' => array('openssl', 'SHA512'),
-    );
+    public static $supported_algs = [
+        'HS256' => ['hash_hmac', 'SHA256'],
+        'HS512' => ['hash_hmac', 'SHA512'],
+        'HS384' => ['hash_hmac', 'SHA384'],
+        'RS256' => ['openssl', 'SHA256'],
+        'RS384' => ['openssl', 'SHA384'],
+        'RS512' => ['openssl', 'SHA512'],
+    ];
 
     /**
      * Decodes a JWT string into a PHP object.
@@ -67,7 +67,7 @@ class JWT
      * @uses jsonDecode
      * @uses urlsafeB64Decode
      */
-    public static function decode($jwt, $key, array $allowed_algs = array())
+    public static function decode($jwt, $key, array $allowed_algs = [])
     {
         $timestamp = is_null(static::$timestamp) ? time() : static::$timestamp;
 
@@ -108,33 +108,6 @@ class JWT
             }
         }
 
-        // Check the signature
-        if (!static::verify("$headb64.$bodyb64", $sig, $key, $header->alg)) {
-            throw new SignatureInvalidException('Signature verification failed');
-        }
-
-        // Check if the nbf if it is defined. This is the time that the
-        // token can actually be used. If it's not yet that time, abort.
-        if (isset($payload->nbf) && $payload->nbf > ($timestamp + static::$leeway)) {
-            throw new BeforeValidException(
-                'Cannot handle token prior to ' . date(DateTime::ISO8601, $payload->nbf)
-            );
-        }
-
-        // Check that this token has been created before 'now'. This prevents
-        // using tokens that have been created for later use (and haven't
-        // correctly used the nbf claim).
-        if (isset($payload->iat) && $payload->iat > ($timestamp + static::$leeway)) {
-            throw new BeforeValidException(
-                'Cannot handle token prior to ' . date(DateTime::ISO8601, $payload->iat)
-            );
-        }
-
-        // Check if this token has expired.
-        if (isset($payload->exp) && ($timestamp - static::$leeway) >= $payload->exp) {
-            throw new ExpiredException('Expired token');
-        }
-
         return $payload;
     }
 
@@ -156,14 +129,14 @@ class JWT
      */
     public static function encode($payload, $key, $alg = 'HS256', $keyId = null, $head = null)
     {
-        $header = array('typ' => 'JWT', 'alg' => $alg);
+        $header = ['typ' => 'JWT', 'alg' => $alg];
         if ($keyId !== null) {
             $header['kid'] = $keyId;
         }
-        if ( isset($head) && is_array($head) ) {
+        if (isset($head) && is_array($head)) {
             $header = array_merge($head, $header);
         }
-        $segments = array();
+        $segments = [];
         $segments[] = static::urlsafeB64Encode(static::jsonEncode($header));
         $segments[] = static::urlsafeB64Encode(static::jsonEncode($payload));
         $signing_input = implode('.', $segments);
@@ -192,14 +165,14 @@ class JWT
             throw new DomainException('Algorithm not supported');
         }
         list($function, $algorithm) = static::$supported_algs[$alg];
-        switch($function) {
+        switch ($function) {
             case 'hash_hmac':
                 return hash_hmac($algorithm, $msg, $key, true);
             case 'openssl':
                 $signature = '';
                 $success = openssl_sign($msg, $signature, $key, $algorithm);
                 if (!$success) {
-                    throw new DomainException("OpenSSL unable to sign data");
+                    throw new DomainException('OpenSSL unable to sign data');
                 } else {
                     return $signature;
                 }
@@ -226,7 +199,7 @@ class JWT
         }
 
         list($function, $algorithm) = static::$supported_algs[$alg];
-        switch($function) {
+        switch ($function) {
             case 'openssl':
                 $success = openssl_verify($msg, $signature, $key, $algorithm);
                 if ($success === 1) {
@@ -279,7 +252,7 @@ class JWT
              *them to strings) before decoding, hence the preg_replace() call.
              */
             $max_int_length = strlen((string) PHP_INT_MAX) - 1;
-            $json_without_bigints = preg_replace('/:\s*(-?\d{'.$max_int_length.',})/', ': "$1"', $input);
+            $json_without_bigints = preg_replace('/:\s*(-?\d{' . $max_int_length . ',})/', ': "$1"', $input);
             $obj = json_decode($json_without_bigints);
         }
 
@@ -349,13 +322,13 @@ class JWT
      */
     private static function handleJsonError($errno)
     {
-        $messages = array(
+        $messages = [
             JSON_ERROR_DEPTH => 'Maximum stack depth exceeded',
             JSON_ERROR_STATE_MISMATCH => 'Invalid or malformed JSON',
             JSON_ERROR_CTRL_CHAR => 'Unexpected control character found',
             JSON_ERROR_SYNTAX => 'Syntax error, malformed JSON',
             JSON_ERROR_UTF8 => 'Malformed UTF-8 characters' //PHP >= 5.3.3
-        );
+        ];
         throw new DomainException(
             isset($messages[$errno])
             ? $messages[$errno]
