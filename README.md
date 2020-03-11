@@ -1,4 +1,4 @@
-php-apple-signin
+Apple-signin
 =======
 PHP library to manage Sign In with Apple identifier tokens, and validate them server side passed through by the iOS client.
 
